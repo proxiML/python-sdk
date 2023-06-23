@@ -80,6 +80,14 @@ class Region:
             f"/provider/{self._provider_uuid}/region/{self._id}", "DELETE"
         )
 
+    async def refresh(self):
+        resp = await self.proximl._query(
+            f"/provider/{self._provider_uuid}/region/{self._id}",
+            "GET",
+        )
+        self.__init__(self.proximl, **resp)
+        return self
+
     async def add_dataset(self, project_uuid, dataset_uuid, **kwargs):
         await self.proximl._query(
             f"/provider/{self._provider_uuid}/region/{self._id}/dataset",

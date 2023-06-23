@@ -61,3 +61,11 @@ class Provider:
 
     async def remove(self):
         await self.proximl._query(f"/provider/{self._id}", "DELETE")
+
+    async def refresh(self):
+        resp = await self.proximl._query(
+            f"/provider/{self._id}",
+            "GET",
+        )
+        self.__init__(self.proximl, **resp)
+        return self
