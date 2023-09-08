@@ -22,6 +22,7 @@ from proximl.cloudbender import Cloudbender
 from proximl.cloudbender.providers import Provider, Providers
 from proximl.cloudbender.regions import Region, Regions
 from proximl.cloudbender.nodes import Node, Nodes
+from proximl.cloudbender.devices import Device, Devices
 from proximl.cloudbender.datastores import Datastore, Datastores
 from proximl.cloudbender.reservations import Reservation, Reservations
 from proximl.cloudbender.device_configs import DeviceConfig, DeviceConfigs
@@ -707,6 +708,53 @@ def mock_nodes():
 
 
 @fixture(scope="session")
+def mock_devices():
+    proximl = Mock()
+    yield [
+        Device(
+            proximl,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "device_id": "dev-id-1",
+                "type": "device",
+                "service": "compute",
+                "friendly_name": "hq-orin-01",
+                "hostname": "hq-orin-01",
+                "status": "active",
+                "online": True,
+                "maintenance_mode": False,
+                "job_status": "running",
+                "job_last_deployed": "2023-06-02T21:22:40.084Z",
+                "job_config_id": "job-id-1",
+                "job_config_revision": "1685740490096",
+                "device_config_id": "conf-id-1",
+            },
+        ),
+        Device(
+            proximl,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "device_id": "dev-id-2",
+                "type": "device",
+                "service": "compute",
+                "friendly_name": "hq-orin-02",
+                "hostname": "hq-orin-02",
+                "status": "active",
+                "online": True,
+                "maintenance_mode": False,
+                "job_status": "running",
+                "job_last_deployed": "2023-06-02T21:22:40.084Z",
+                "job_config_id": "job-id-2",
+                "job_config_revision": "1685740490096",
+                "device_config_id": "conf-id-1",
+            },
+        ),
+    ]
+
+
+@fixture(scope="session")
 def mock_datastores():
     proximl = Mock()
     yield [
@@ -863,6 +911,7 @@ def mock_proximl(
     mock_providers,
     mock_regions,
     mock_nodes,
+    mock_devices,
     mock_datastores,
     mock_reservations,
     mock_device_configs,
@@ -898,6 +947,8 @@ def mock_proximl(
     proximl.cloudbender.regions.list = AsyncMock(return_value=mock_regions)
     proximl.cloudbender.nodes = create_autospec(Nodes)
     proximl.cloudbender.nodes.list = AsyncMock(return_value=mock_nodes)
+    proximl.cloudbender.devices = create_autospec(Nodes)
+    proximl.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     proximl.cloudbender.datastores = create_autospec(Datastores)
     proximl.cloudbender.datastores.list = AsyncMock(
         return_value=mock_datastores

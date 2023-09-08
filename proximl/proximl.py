@@ -28,7 +28,7 @@ async def delayed_close(ws):
 class ProxiML(object):
     def __init__(self, **kwargs):
         self._version = version("proximl")
-        CONFIG_DIR = os.path.expanduser(
+        CONFIG_DIR = kwargs.get("config_dir") or os.path.expanduser(
             os.environ.get("PROXIML_CONFIG_DIR") or "~/.proximl"
         )
         try:
@@ -50,6 +50,7 @@ class ProxiML(object):
             or "proximl.ai"
         )
         self.auth = Auth(
+            config_dir=CONFIG_DIR,
             domain_suffix=self.domain_suffix,
             user=kwargs.get("user"),
             key=kwargs.get("key"),

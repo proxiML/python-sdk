@@ -1,4 +1,5 @@
 import click
+import logging
 from proximl.cli import cli, pass_config, search_by_id_name
 
 
@@ -64,6 +65,7 @@ def connect(config, model, attach):
     models = config.proximl.run(config.proximl.client.models.list())
 
     found = search_by_id_name(model, models)
+    logging.debug(found)
     if None is found:
         raise click.UsageError("Cannot find specified model.")
 
