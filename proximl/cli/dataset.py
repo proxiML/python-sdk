@@ -252,9 +252,7 @@ def rename(config, dataset, name):
     DATASET may be specified by name or ID, but ID is preferred.
     """
     try:
-        dataset = config.proximl.run(
-            config.proximl.client.datasets.get(dataset)
-        )
+        dataset = config.proximl.run(config.proximl.client.datasets.get(dataset))
         if dataset is None:
             raise click.UsageError("Cannot find specified dataset.")
     except:

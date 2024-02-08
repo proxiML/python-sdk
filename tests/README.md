@@ -9,7 +9,7 @@ pytest --cov-report term-missing --cov=proximl --dist=loadscope -nauto --env=<de
 ### Run unit tests
 
 ```
-pytest --cov-report term-missing --cov=proximl -nauto -m unit
+pytest --cov-report term-missing --cov=proximl --dist=loadscope -nauto -m unit
 ```
 
 ### Run integration tests
