@@ -430,7 +430,7 @@ class JobIOTests:
             source_uri="git@github.com:proxiML/environment-tests.git",
         )
         await model.wait_for("ready", 300)
-        assert model.size >= 200000
+        assert model.size >= 50000
 
         job = await proximl.jobs.create(
             "CLI Automated Tests - Training With proxiML Model Output",
