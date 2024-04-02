@@ -142,9 +142,7 @@ def configure(config):
         project for project in projects if project.id == active_project_id
     ]
 
-    active_project_name = (
-        active_project[0].name if len(active_project) else "UNSET"
-    )
+    active_project_name = active_project[0].name if len(active_project) else "UNSET"
 
     click.echo(f"Current Active Project: {active_project_name}")
 
@@ -154,9 +152,7 @@ def configure(config):
         show_choices=True,
         default=active_project_name,
     )
-    selected_project = [
-        project for project in projects if project.name == name
-    ]
+    selected_project = [project for project in projects if project.name == name]
     config.proximl.client.set_active_project(selected_project[0].id)
 
 
@@ -164,6 +160,7 @@ from proximl.cli.connection import connection
 from proximl.cli.dataset import dataset
 from proximl.cli.model import model
 from proximl.cli.checkpoint import checkpoint
+from proximl.cli.volume import volume
 from proximl.cli.environment import environment
 from proximl.cli.gpu import gpu
 from proximl.cli.job import job

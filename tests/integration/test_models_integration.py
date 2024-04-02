@@ -43,29 +43,27 @@ class GetModelTests:
 
     async def test_model_repr(self, model):
         string = repr(model)
-        regex = (
-            r"^Model\( proximl , \*\*{.*'model_uuid': '"
-            + model.id
-            + r"'.*}\)$"
-        )
+        regex = r"^Model\( proximl , \*\*{.*'model_uuid': '" + model.id + r"'.*}\)$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
 
 @mark.create
 @mark.asyncio
-async def test_model_aws(proximl, capsys):
+async def test_model_wasabi(proximl, capsys):
     model = await proximl.models.create(
-        name="CLI Automated AWS",
-        source_type="aws",
-        source_uri="s3://proximl-examples/models/mxnet-model.zip",
+        name="CLI Automated Wasabi",
+        source_type="wasabi",
+        source_uri="s3://proximl-example/models/proximl-examples",
+        capacity="10G",
+        source_options=dict(endpoint_url="https://s3.wasabisys.com"),
     )
     model = await model.wait_for("ready", 300)
     status = model.status
     size = model.size
     await model.remove()
     assert status == "ready"
-    assert size >= 1000000
+    assert size >= 500000
 
 
 @mark.create

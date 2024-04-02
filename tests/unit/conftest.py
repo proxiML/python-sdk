@@ -7,6 +7,7 @@ from proximl.proximl import ProxiML
 from proximl.auth import Auth
 from proximl.datasets import Dataset, Datasets
 from proximl.checkpoints import Checkpoint, Checkpoints
+from proximl.volumes import Volume, Volumes
 from proximl.models import Model, Models
 from proximl.gpu_types import GpuType, GpuTypes
 from proximl.environments import Environment, Environments
@@ -253,6 +254,79 @@ def mock_models():
             name="failed",
             status="failed",
             size=10000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+    ]
+
+
+@fixture(scope="session")
+def mock_my_volumes():
+    proximl = Mock()
+    yield [
+        Volume(
+            proximl,
+            id="1",
+            project_uuid="proj-id-1",
+            name="first one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Volume(
+            proximl,
+            id="2",
+            project_uuid="proj-id-1",
+            name="second one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Volume(
+            proximl,
+            id="3",
+            project_uuid="proj-id-1",
+            name="first one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Volume(
+            proximl,
+            id="4",
+            project_uuid="proj-id-1",
+            name="other one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Volume(
+            proximl,
+            id="5",
+            project_uuid="proj-id-1",
+            name="not ready",
+            status="new",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Volume(
+            proximl,
+            id="6",
+            project_uuid="proj-id-1",
+            name="failed",
+            status="failed",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
             createdAt="2021-01-01T00:00:01.000Z",
         ),
     ]
@@ -903,6 +977,9 @@ def mock_device_configs():
 def mock_proximl(
     mock_my_datasets,
     mock_public_datasets,
+    mock_my_checkpoints,
+    mock_public_checkpoints,
+    mock_my_volumes,
     mock_models,
     mock_gpu_types,
     mock_environments,
@@ -921,6 +998,7 @@ def mock_proximl(
     proximl.project = "proj-id-1"
     proximl.datasets = create_autospec(Datasets)
     proximl.checkpoints = create_autospec(Checkpoints)
+    proximl.volumes = create_autospec(Volumes)
     proximl.models = create_autospec(Models)
     proximl.gpu_types = create_autospec(GpuTypes)
     proximl.environments = create_autospec(Environments)
@@ -930,10 +1008,9 @@ def mock_proximl(
     proximl.datasets.list = AsyncMock(return_value=mock_my_datasets)
     proximl.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     proximl.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
-    proximl.checkpoints.list_public = AsyncMock(
-        return_value=mock_public_checkpoints
-    )
+    proximl.checkpoints.list_public = AsyncMock(return_value=mock_public_checkpoints)
     proximl.models.list = AsyncMock(return_value=mock_models)
+    proximl.volumes.list = AsyncMock(return_value=mock_my_volumes)
     proximl.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
     proximl.environments.list = AsyncMock(return_value=mock_environments)
     proximl.jobs.list = AsyncMock(return_value=mock_jobs)
@@ -950,13 +1027,9 @@ def mock_proximl(
     proximl.cloudbender.devices = create_autospec(Nodes)
     proximl.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     proximl.cloudbender.datastores = create_autospec(Datastores)
-    proximl.cloudbender.datastores.list = AsyncMock(
-        return_value=mock_datastores
-    )
+    proximl.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
     proximl.cloudbender.reservations = create_autospec(Reservations)
-    proximl.cloudbender.reservations.list = AsyncMock(
-        return_value=mock_reservations
-    )
+    proximl.cloudbender.reservations.list = AsyncMock(return_value=mock_reservations)
     proximl.cloudbender.device_configs = create_autospec(DeviceConfigs)
     proximl.cloudbender.device_configs.list = AsyncMock(
         return_value=mock_device_configs

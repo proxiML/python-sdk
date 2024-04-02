@@ -10,6 +10,7 @@ from proximl.auth import Auth
 from proximl.datasets import Datasets
 from proximl.models import Models
 from proximl.checkpoints import Checkpoints
+from proximl.volumes import Volumes
 from proximl.jobs import Jobs
 from proximl.gpu_types import GpuTypes
 from proximl.environments import Environments
@@ -66,6 +67,7 @@ class ProxiML(object):
         self.datasets = Datasets(self)
         self.models = Models(self)
         self.checkpoints = Checkpoints(self)
+        self.volumes = Volumes(self)
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
         self.environments = Environments(self)
@@ -117,9 +119,7 @@ class ProxiML(object):
         )
         if params:
             if not isinstance(params, dict):
-                raise ProxiMLException(
-                    "Query parameters must be a valid dictionary"
-                )
+                raise ProxiMLException("Query parameters must be a valid dictionary")
             params = {
                 k: (str(v).lower() if isinstance(v, bool) else v)
                 for k, v in params.items()
@@ -155,13 +155,9 @@ class ProxiML(object):
                     content_type = resp.headers.get("content-type", "")
                     resp.close()
                     if content_type == "application/json":
-                        raise ApiError(
-                            resp.status, json.loads(what.decode("utf8"))
-                        )
+                        raise ApiError(resp.status, json.loads(what.decode("utf8")))
                     else:
-                        raise ApiError(
-                            resp.status, {"message": what.decode("utf8")}
-                        )
+                        raise ApiError(resp.status, {"message": what.decode("utf8")})
                 results = await resp.json()
                 return results
 
@@ -273,15 +269,11 @@ class ProxiML(object):
                     logging.debug(f"Websocket Disconnected.  Done? {done}")
                 except Exception as e:
                     connection_tries += 1
-                    logging.debug(
-                        f"Connection error: {traceback.format_exc()}"
-                    )
+                    logging.debug(f"Connection error: {traceback.format_exc()}")
                     if connection_tries == 5:
                         raise ApiError(
                             500,
-                            {
-                                "message": f"Connection error: {traceback.format_exc()}"
-                            },
+                            {"message": f"Connection error: {traceback.format_exc()}"},
                         )
 
     def set_active_project(self, project_uuid):
