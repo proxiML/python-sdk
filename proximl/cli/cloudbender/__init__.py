@@ -15,4 +15,4 @@ from proximl.cli.cloudbender.region import region
 from proximl.cli.cloudbender.node import node
 from proximl.cli.cloudbender.device import device
 from proximl.cli.cloudbender.datastore import datastore
-from proximl.cli.cloudbender.reservation import reservation
+from proximl.cli.cloudbender.service import service

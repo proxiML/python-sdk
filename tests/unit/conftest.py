@@ -17,7 +17,7 @@ from proximl.projects import (
     Projects,
     Project,
     ProjectDatastore,
-    ProjectReservation,
+    ProjectService,
 )
 from proximl.cloudbender import Cloudbender
 from proximl.cloudbender.providers import Provider, Providers
@@ -25,7 +25,7 @@ from proximl.cloudbender.regions import Region, Regions
 from proximl.cloudbender.nodes import Node, Nodes
 from proximl.cloudbender.devices import Device, Devices
 from proximl.cloudbender.datastores import Datastore, Datastores
-from proximl.cloudbender.reservations import Reservation, Reservations
+from proximl.cloudbender.services import Service, Services
 from proximl.cloudbender.device_configs import DeviceConfig, DeviceConfigs
 
 
@@ -887,27 +887,27 @@ def mock_project_datastores():
 
 
 @fixture(scope="session")
-def mock_reservations():
+def mock_services():
     proximl = Mock()
     yield [
-        Reservation(
+        Service(
             proximl,
             **{
                 "provider_uuid": "prov-id-1",
                 "region_uuid": "reg-id-1",
-                "reservation_id": "res-id-1",
+                "service_id": "res-id-1",
                 "type": "port",
                 "name": "On-Prem Service A",
                 "resource": "8001",
                 "hostname": "service-a.local",
             },
         ),
-        Reservation(
+        Service(
             proximl,
             **{
                 "provider_uuid": "prov-id-2",
                 "region_uuid": "reg-id-2",
-                "reservation_id": "res-id-2",
+                "service_id": "res-id-2",
                 "type": "port",
                 "name": "Cloud Service B",
                 "resource": "8001",
@@ -918,10 +918,10 @@ def mock_reservations():
 
 
 @fixture(scope="session")
-def mock_project_reservations():
+def mock_project_services():
     proximl = Mock()
     yield [
-        ProjectReservation(
+        ProjectService(
             proximl,
             **{
                 "project_uuid": "proj-id-1",
@@ -933,7 +933,7 @@ def mock_project_reservations():
                 "hostname": "service-a.local",
             },
         ),
-        ProjectReservation(
+        ProjectService(
             proximl,
             **{
                 "project_uuid": "proj-id-1",
@@ -990,7 +990,7 @@ def mock_proximl(
     mock_nodes,
     mock_devices,
     mock_datastores,
-    mock_reservations,
+    mock_services,
     mock_device_configs,
 ):
     proximl = create_autospec(ProxiML)
@@ -1028,8 +1028,8 @@ def mock_proximl(
     proximl.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     proximl.cloudbender.datastores = create_autospec(Datastores)
     proximl.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
-    proximl.cloudbender.reservations = create_autospec(Reservations)
-    proximl.cloudbender.reservations.list = AsyncMock(return_value=mock_reservations)
+    proximl.cloudbender.services = create_autospec(Services)
+    proximl.cloudbender.services.list = AsyncMock(return_value=mock_services)
     proximl.cloudbender.device_configs = create_autospec(DeviceConfigs)
     proximl.cloudbender.device_configs.list = AsyncMock(
         return_value=mock_device_configs

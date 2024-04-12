@@ -3,7 +3,7 @@ from .regions import Regions
 from .nodes import Nodes
 from .devices import Devices
 from .datastores import Datastores
-from .reservations import Reservations
+from .services import Services
 from .device_configs import DeviceConfigs
 
 
@@ -15,5 +15,5 @@ class Cloudbender(object):
         self.nodes = Nodes(proximl)
         self.devices = Devices(proximl)
         self.datastores = Datastores(proximl)
-        self.reservations = Reservations(proximl)
+        self.services = Services(proximl)
         self.device_configs = DeviceConfigs(proximl)
