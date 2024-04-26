@@ -15,4 +15,5 @@ from proximl.cli.cloudbender.region import region
 from proximl.cli.cloudbender.node import node
 from proximl.cli.cloudbender.device import device
 from proximl.cli.cloudbender.datastore import datastore
+from proximl.cli.cloudbender.data_connector import data_connector
 from proximl.cli.cloudbender.service import service
