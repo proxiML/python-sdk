@@ -16,9 +16,11 @@ from proximl.connections import Connections
 from proximl.projects import (
     Projects,
     Project,
-    ProjectDatastore,
-    ProjectService,
 )
+from proximl.projects.datastores import ProjectDatastore
+from proximl.projects.services import ProjectService
+from proximl.projects.data_connectors import ProjectDataConnector
+
 from proximl.cloudbender import Cloudbender
 from proximl.cloudbender.providers import Provider, Providers
 from proximl.cloudbender.regions import Region, Regions
@@ -26,6 +28,7 @@ from proximl.cloudbender.nodes import Node, Nodes
 from proximl.cloudbender.devices import Device, Devices
 from proximl.cloudbender.datastores import Datastore, Datastores
 from proximl.cloudbender.services import Service, Services
+from proximl.cloudbender.data_connectors import DataConnector, DataConnectors
 from proximl.cloudbender.device_configs import DeviceConfig, DeviceConfigs
 
 
@@ -949,6 +952,68 @@ def mock_project_services():
 
 
 @fixture(scope="session")
+def mock_data_connectors():
+    proximl = Mock()
+    yield [
+        DataConnector(
+            proximl,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "connector_id": "con-id-1",
+                "type": "custom",
+                "name": "On-Prem Connection A",
+                "protocol": "TCP",
+                "port_range": "8000-8099",
+                "cidr": "10.0.3.0/24",
+            },
+        ),
+        DataConnector(
+            proximl,
+            **{
+                "provider_uuid": "prov-id-2",
+                "region_uuid": "reg-id-2",
+                "connector_id": "con-id-2",
+                "type": "custom",
+                "name": "Cloud Connection B",
+                "protocol": "UDP",
+                "port_range": "5000",
+                "cidr": "10.0.2.0/24",
+            },
+        ),
+    ]
+
+
+@fixture(
+    scope="session",
+)
+def mock_project_data_connectors():
+    proximl = Mock()
+    yield [
+        ProjectDataConnector(
+            proximl,
+            **{
+                "project_uuid": "proj-id-1",
+                "region_uuid": "reg-id-1",
+                "id": "con-id-1",
+                "type": "custom",
+                "name": "On-Prem Connection A",
+            },
+        ),
+        ProjectDataConnector(
+            proximl,
+            **{
+                "project_uuid": "proj-id-1",
+                "region_uuid": "reg-id-2",
+                "id": "con-id-2",
+                "type": "custom",
+                "name": "Cloud Connection B",
+            },
+        ),
+    ]
+
+
+@fixture(scope="session")
 def mock_device_configs():
     proximl = Mock()
     yield [
@@ -991,6 +1056,7 @@ def mock_proximl(
     mock_devices,
     mock_datastores,
     mock_services,
+    mock_data_connectors,
     mock_device_configs,
 ):
     proximl = create_autospec(ProxiML)
@@ -1030,6 +1096,10 @@ def mock_proximl(
     proximl.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
     proximl.cloudbender.services = create_autospec(Services)
     proximl.cloudbender.services.list = AsyncMock(return_value=mock_services)
+    proximl.cloudbender.data_connectors = create_autospec(DataConnectors)
+    proximl.cloudbender.data_connectors.list = AsyncMock(
+        return_value=mock_data_connectors
+    )
     proximl.cloudbender.device_configs = create_autospec(DeviceConfigs)
     proximl.cloudbender.device_configs.list = AsyncMock(
         return_value=mock_device_configs

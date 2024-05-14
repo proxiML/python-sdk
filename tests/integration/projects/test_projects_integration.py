@@ -9,12 +9,6 @@ pytestmark = [mark.sdk, mark.integration, mark.projects]
 @mark.create
 @mark.asyncio
 class GetProjectsTests:
-    @fixture(scope="class")
-    async def project(self, proximl):
-        project = await proximl.projects.create(name="New Project", copy_keys=False)
-        yield project
-        await project.remove()
-
     async def test_get_projects(self, proximl):
         projects = await proximl.projects.list()
         assert len(projects) > 0
