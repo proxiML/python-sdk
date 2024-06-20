@@ -3,11 +3,7 @@ import logging
 import asyncio
 import math
 
-from proximl.exceptions import (
-    ApiError,
-    SpecificationError,
-    ProxiMLException,
-)
+from proximl.exceptions import ApiError, SpecificationError, ProxiMLException, NodeError
 
 
 class Nodes(object):
@@ -37,7 +33,7 @@ class Nodes(object):
         region_uuid,
         friendly_name,
         hostname,
-        minion_id,
+        minion_id=None,
         type="permanent",
         service="compute",
         **kwargs,
@@ -191,6 +187,8 @@ class Node:
                 if status == "archived" and e.status == 404:
                     return
                 raise e
+            if self.status in ["errored", "failed"]:
+                raise NodeError(self.status, self)
             if self.status == status:
                 return self
             else:

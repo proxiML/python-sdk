@@ -77,77 +77,8 @@ def remove(config, project):
     return config.proximl.run(found.remove())
 
 
-@project.command()
-@pass_config
-def list_datastores(config):
-    """List project datastores."""
-    data = [
-        ["ID", "NAME", "TYPE", "REGION_UUID"],
-        [
-            "-" * 80,
-            "-" * 80,
-            "-" * 80,
-            "-" * 80,
-        ],
-    ]
-    project = config.proximl.run(
-        config.proximl.client.projects.get(config.proximl.client.project)
-    )
-
-    datastores = config.proximl.run(project.list_datastores())
-
-    for datastore in datastores:
-        data.append(
-            [
-                datastore.id,
-                datastore.name,
-                datastore.type,
-                datastore.region_uuid,
-            ]
-        )
-
-    for row in data:
-        click.echo(
-            "{: >38.36} {: >30.28} {: >15.13} {: >38.36}" "".format(*row),
-            file=config.stdout,
-        )
-
-
-@project.command()
-@pass_config
-def list_services(config):
-    """List project services."""
-    data = [
-        ["ID", "NAME", "HOSTNAME", "REGION_UUID"],
-        [
-            "-" * 80,
-            "-" * 80,
-            "-" * 80,
-            "-" * 80,
-        ],
-    ]
-    project = config.proximl.run(
-        config.proximl.client.projects.get(config.proximl.client.project)
-    )
-
-    services = config.proximl.run(project.list_services())
-
-    for service in services:
-        data.append(
-            [
-                service.id,
-                service.name,
-                service.hostname,
-                service.region_uuid,
-            ]
-        )
-
-    for row in data:
-        click.echo(
-            "{: >38.36} {: >30.28} {: >30.28} {: >38.36}" "".format(*row),
-            file=config.stdout,
-        )
-
-
 from proximl.cli.project.secret import secret
 from proximl.cli.project.key import key
+from proximl.cli.project.data_connector import data_connector
+from proximl.cli.project.datastore import datastore
+from proximl.cli.project.service import service

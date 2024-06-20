@@ -17,9 +17,11 @@ from proximl.projects import (
     Projects,
     Project,
 )
-from proximl.projects.datastores import ProjectDatastore
-from proximl.projects.services import ProjectService
-from proximl.projects.data_connectors import ProjectDataConnector
+from proximl.projects.datastores import ProjectDatastores, ProjectDatastore
+from proximl.projects.services import ProjectServices, ProjectService
+from proximl.projects.data_connectors import ProjectDataConnectors, ProjectDataConnector
+from proximl.projects.keys import ProjectKeys, ProjectKey
+from proximl.projects.secrets import ProjectSecrets, ProjectSecret
 
 from proximl.cloudbender import Cloudbender
 from proximl.cloudbender.providers import Provider, Providers
@@ -1038,6 +1040,60 @@ def mock_device_configs():
     ]
 
 
+@fixture(
+    scope="session",
+)
+def mock_project_keys():
+    proximl = Mock()
+    yield [
+        ProjectKey(
+            proximl,
+            **{
+                "project_uuid": "proj-id-1",
+                "type": "aws",
+                "key_id": "AKSHFKHDFS",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+        ProjectKey(
+            proximl,
+            **{
+                "project_uuid": "proj-id-1",
+                "type": "gcp",
+                "key_id": "credentials.json",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+    ]
+
+
+@fixture(
+    scope="session",
+)
+def mock_project_secrets():
+    proximl = Mock()
+    yield [
+        ProjectSecret(
+            proximl,
+            **{
+                "project_uuid": "proj-id-1",
+                "name": "super_secret",
+                "created_by": "User",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+        ProjectSecret(
+            proximl,
+            **{
+                "project_uuid": "proj-id-1",
+                "name": "super_secret_2",
+                "created_by": "User",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+    ]
+
+
 @fixture(scope="function")
 def mock_proximl(
     mock_my_datasets,
@@ -1058,6 +1114,11 @@ def mock_proximl(
     mock_services,
     mock_data_connectors,
     mock_device_configs,
+    mock_project_datastores,
+    mock_project_services,
+    mock_project_data_connectors,
+    mock_project_keys,
+    mock_project_secrets,
 ):
     proximl = create_autospec(ProxiML)
     proximl.active_project = "proj-id-1"
@@ -1081,6 +1142,18 @@ def mock_proximl(
     proximl.environments.list = AsyncMock(return_value=mock_environments)
     proximl.jobs.list = AsyncMock(return_value=mock_jobs)
     proximl.projects.list = AsyncMock(return_value=mock_projects)
+    proximl.projects.datastores = create_autospec(ProjectDatastores)
+    proximl.projects.datastores.list = AsyncMock(return_value=mock_project_datastores)
+    proximl.projects.services = create_autospec(ProjectServices)
+    proximl.projects.services.list = AsyncMock(return_value=mock_project_services)
+    proximl.projects.data_connectors = create_autospec(ProjectDataConnectors)
+    proximl.projects.data_connectors.list = AsyncMock(
+        return_value=mock_project_data_connectors
+    )
+    proximl.projects.keys = create_autospec(ProjectKeys)
+    proximl.projects.keys.list = AsyncMock(return_value=mock_project_keys)
+    proximl.projects.secrets = create_autospec(ProjectSecrets)
+    proximl.projects.secrets.list = AsyncMock(return_value=mock_project_secrets)
 
     proximl.cloudbender = create_autospec(Cloudbender)
 
@@ -1090,7 +1163,7 @@ def mock_proximl(
     proximl.cloudbender.regions.list = AsyncMock(return_value=mock_regions)
     proximl.cloudbender.nodes = create_autospec(Nodes)
     proximl.cloudbender.nodes.list = AsyncMock(return_value=mock_nodes)
-    proximl.cloudbender.devices = create_autospec(Nodes)
+    proximl.cloudbender.devices = create_autospec(Devices)
     proximl.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     proximl.cloudbender.datastores = create_autospec(Datastores)
     proximl.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
