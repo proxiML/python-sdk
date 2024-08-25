@@ -78,7 +78,7 @@ def remove(config, project):
 
 
 from proximl.cli.project.secret import secret
-from proximl.cli.project.key import key
+from proximl.cli.project.credential import credential
 from proximl.cli.project.data_connector import data_connector
 from proximl.cli.project.datastore import datastore
 from proximl.cli.project.service import service

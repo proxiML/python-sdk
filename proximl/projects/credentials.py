@@ -4,37 +4,37 @@ from datetime import datetime
 from dateutil import parser, tz
 
 
-class ProjectKeys(object):
+class ProjectCredentials(object):
     def __init__(self, proximl, project_id):
         self.proximl = proximl
         self.project_id = project_id
 
     async def list(self, **kwargs):
         resp = await self.proximl._query(
-            f"/project/{self.project_id}/keys", "GET", kwargs
+            f"/project/{self.project_id}/credentials", "GET", kwargs
         )
-        keys = [ProjectKey(self.proximl, **service) for service in resp]
-        return keys
+        credentials = [ProjectCredential(self.proximl, **service) for service in resp]
+        return credentials
 
     async def put(self, type, key_id, secret, tenant=None, **kwargs):
         data = dict(key_id=key_id, secret=secret, tenant=tenant)
         payload = {k: v for k, v in data.items() if v is not None}
-        logging.info(f"Creating Project Key {type}")
+        logging.info(f"Creating Project Credential {type}")
         resp = await self.proximl._query(
-            f"/project/{self.project_id}/key/{type}", "PUT", None, payload
+            f"/project/{self.project_id}/credential/{type}", "PUT", None, payload
         )
-        key = ProjectKey(self.proximl, **resp)
-        logging.info(f"Created Project Key {type} in project {self.project_id}")
+        credential = ProjectCredential(self.proximl, **resp)
+        logging.info(f"Created Project Credential {type} in project {self.project_id}")
 
-        return key
+        return credential
 
     async def remove(self, type, **kwargs):
         await self.proximl._query(
-            f"/project/{self.project_id}/key/{type}", "DELETE", kwargs
+            f"/project/{self.project_id}/credential/{type}", "DELETE", kwargs
         )
 
 
-class ProjectKey:
+class ProjectCredential:
     def __init__(self, proximl, **kwargs):
         self.proximl = proximl
         self._entity = kwargs
@@ -65,7 +65,7 @@ class ProjectKey:
         return json.dumps({k: v for k, v in self._entity.items()})
 
     def __repr__(self):
-        return f"ProjectKey( proximl , **{self._entity.__repr__()})"
+        return f"ProjectCredential( proximl , **{self._entity.__repr__()})"
 
     def __bool__(self):
         return bool(self._type)
