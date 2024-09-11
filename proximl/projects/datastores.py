@@ -7,6 +7,12 @@ class ProjectDatastores(object):
         self.proximl = proximl
         self.project_id = project_id
 
+    async def get(self, id, **kwargs):
+        resp = await self.proximl._query(
+            f"/project/{self.project_id}/datastores/{id}", "GET", kwargs
+        )
+        return ProjectDatastore(self.proximl, **resp)
+
     async def list(self, **kwargs):
         resp = await self.proximl._query(
             f"/project/{self.project_id}/datastores", "GET", kwargs
@@ -56,3 +62,13 @@ class ProjectDatastore:
 
     def __bool__(self):
         return bool(self._id)
+
+    async def enable(self):
+        await self.proximl._query(
+            f"/project/{self._project_uuid}/datastores/{self._id}/enable", "PATCH"
+        )
+
+    async def disable(self):
+        await self.proximl._query(
+            f"/project/{self._project_uuid}/datastores/{self._id}/disable", "PATCH"
+        )
