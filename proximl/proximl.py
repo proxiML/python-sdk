@@ -4,6 +4,7 @@ import asyncio
 import aiohttp
 import logging
 import traceback
+import random
 from importlib.metadata import version
 
 from proximl.auth import Auth
@@ -91,7 +92,7 @@ class ProxiML(object):
     def project(self) -> str:
         return self.active_project
 
-    async def _query(self, path, method, params=None, data=None, headers=None):
+    async def _query(self, path, method, params=None, data=None, headers=None,max_retries=3, backoff_factor=0.5):
         try:
             tokens = self.auth.get_tokens()
         except ProxiMLException as e:
@@ -142,24 +143,40 @@ class ProxiML(object):
         logging.debug(
             f"Request - Url: {url}, Method: {method}, Params: {params}, Body: {data}, Headers: {headers}"
         )
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                method,
-                url,
-                data=json.dumps(data),
-                headers=headers,
-                params=params,
-            ) as resp:
-                if (resp.status // 100) in [4, 5]:
-                    what = await resp.read()
-                    content_type = resp.headers.get("content-type", "")
-                    resp.close()
-                    if content_type == "application/json":
-                        raise ApiError(resp.status, json.loads(what.decode("utf8")))
-                    else:
-                        raise ApiError(resp.status, {"message": what.decode("utf8")})
-                results = await resp.json()
-                return results
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.request(
+                        method,
+                        url,
+                        data=json.dumps(data),
+                        headers=headers,
+                        params=params,
+                    ) as resp:
+                        if (resp.status // 100) in [4, 5]:
+                            if resp.status == 502 and attempt < max_retries - 1:
+                                wait_time = (2 ** attempt) * backoff_factor * (random.random() + 0.5)
+                                await asyncio.sleep(wait_time)
+                                continue
+                            else:
+                                what = await resp.read()
+                                content_type = resp.headers.get("content-type", "")
+                                resp.close()
+                                if content_type == "application/json":
+                                    raise ApiError(resp.status, json.loads(what.decode("utf8")))
+                                else:
+                                    raise ApiError(resp.status, {"message": what.decode("utf8")})
+                        results = await resp.json()
+                        return results
+            except aiohttp.ClientResponseError as e:
+                if e.status == 502 and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * backoff_factor * (random.random() + 0.5)
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    raise  ApiError(e.status, f"Error {e.message}")
+
+        raise ProxiMLException("Unexpected API failure")
 
     async def _ws_subscribe(self, entity, project_uuid, id, msg_handler):
         headers = {
