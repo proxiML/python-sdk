@@ -45,7 +45,9 @@ class ModelsTests:
         api_response = dict()
         mock_proximl._query = AsyncMock(return_value=api_response)
         await models.get("1234")
-        mock_proximl._query.assert_called_once_with("/model/1234", "GET", dict())
+        mock_proximl._query.assert_called_once_with(
+            "/model/1234", "GET", dict()
+        )
 
     @mark.asyncio
     async def test_list_models(
@@ -119,7 +121,11 @@ class ModelTests:
 
     def test_model_repr(self, model):
         string = repr(model)
-        regex = r"^Model\( proximl , \*\*{.*'model_uuid': '" + model.id + r"'.*}\)$"
+        regex = (
+            r"^Model\( proximl , \*\*{.*'model_uuid': '"
+            + model.id
+            + r"'.*}\)$"
+        )
         assert isinstance(string, str)
         assert re.match(regex, string)
 
@@ -130,9 +136,7 @@ class ModelTests:
 
     @mark.asyncio
     async def test_model_get_log_url(self, model, mock_proximl):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
-        )
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
         mock_proximl._query = AsyncMock(return_value=api_response)
         response = await model.get_log_url()
         mock_proximl._query.assert_called_once_with(
@@ -157,79 +161,73 @@ class ModelTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_model_get_connection_utility_url(self, model, mock_proximl):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
-        )
-        mock_proximl._query = AsyncMock(return_value=api_response)
-        response = await model.get_connection_utility_url()
-        mock_proximl._query.assert_called_once_with(
-            "/model/1/download", "GET", dict(project_uuid="proj-id-1")
-        )
-        assert response == api_response
-
-    def test_model_get_connection_details_no_vpn(self, model):
-        details = model.get_connection_details()
-        expected_details = dict()
-        assert details == expected_details
-
-    def test_model_get_connection_details_local_data(self, mock_proximl):
+    async def test_model_connect_downloading_status(self, mock_proximl):
         model = specimen.Model(
             mock_proximl,
             model_uuid="1",
-            project_uuid="a",
-            name="first one",
-            status="new",
-            size=100000,
-            createdAt="2020-12-31T23:59:59.000Z",
-            source_type="local",
-            source_uri="~/tensorflow-example",
-            vpn={
-                "status": "new",
-                "cidr": "10.106.171.0/24",
-                "client": {
-                    "port": "36017",
-                    "id": "cus-id-1",
-                    "address": "10.106.171.253",
-                    "ssh_port": 46600,
-                },
-                "net_prefix_type_id": 1,
-            },
+            project_uuid="proj-id-1",
+            name="test model",
+            status="downloading",
+            auth_token="test-token",
+            hostname="example.com",
+            source_uri="/path/to/source",
         )
-        details = model.get_connection_details()
-        expected_details = dict(
-            project_uuid="a",
-            entity_type="model",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            input_path="~/tensorflow-example",
-            output_path=None,
-        )
-        assert details == expected_details
+
+        with patch(
+            "proximl.models.Model.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "proximl.models.upload", new_callable=AsyncMock
+            ) as mock_upload:
+                await model.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with(
+                    "example.com", "test-token", "/path/to/source"
+                )
 
     @mark.asyncio
-    async def test_model_connect(self, model, mock_proximl):
+    async def test_model_connect_exporting_status(
+        self, mock_proximl, tmp_path
+    ):
+        output_dir = str(tmp_path / "output")
+        model = specimen.Model(
+            mock_proximl,
+            model_uuid="1",
+            project_uuid="proj-id-1",
+            name="test model",
+            status="exporting",
+            auth_token="test-token",
+            hostname="example.com",
+            output_uri=output_dir,
+        )
+
         with patch(
-            "proximl.models.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "connected"
-            resp = await model.connect()
-            connection.start.assert_called_once()
-            assert resp == "connected"
+            "proximl.models.Model.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "proximl.models.download", new_callable=AsyncMock
+            ) as mock_download:
+                await model.connect()
+                mock_refresh.assert_called_once()
+                mock_download.assert_called_once_with(
+                    "example.com", "test-token", output_dir
+                )
 
     @mark.asyncio
-    async def test_model_disconnect(self, model, mock_proximl):
-        with patch(
-            "proximl.models.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "removed"
-            resp = await model.disconnect()
-            connection.stop.assert_called_once()
-            assert resp == "removed"
+    async def test_model_connect_invalid_status(self, mock_proximl):
+        model = specimen.Model(
+            mock_proximl,
+            model_uuid="1",
+            project_uuid="proj-id-1",
+            name="test model",
+            status="ready",
+        )
+
+        with raises(
+            SpecificationError,
+            match="You can only connect to downloading or exporting models",
+        ):
+            await model.connect()
 
     @mark.asyncio
     async def test_model_remove(self, model, mock_proximl):
@@ -413,6 +411,152 @@ class ModelTests:
         mock_proximl._query.assert_called()
 
     @mark.asyncio
+    async def test_model_rename(self, model, mock_proximl):
+        api_response = dict(
+            model_uuid="1",
+            name="renamed model",
+            project_uuid="proj-id-1",
+            status="ready",
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await model.rename("renamed model")
+        mock_proximl._query.assert_called_once_with(
+            "/model/1",
+            "PATCH",
+            None,
+            dict(name="renamed model"),
+        )
+        assert result == model
+        assert model.name == "renamed model"
+
+    @mark.asyncio
+    async def test_model_export(self, model, mock_proximl):
+        api_response = dict(
+            model_uuid="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await model.export("aws", "s3://bucket/path", dict(key="value"))
+        mock_proximl._query.assert_called_once_with(
+            "/model/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(key="value"),
+            ),
+        )
+        assert result == model
+        assert model.status == "exporting"
+
+    @mark.asyncio
+    async def test_model_export_default_options(self, model, mock_proximl):
+        api_response = dict(
+            model_uuid="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await model.export("aws", "s3://bucket/path")
+        mock_proximl._query.assert_called_once_with(
+            "/model/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(),
+            ),
+        )
+        assert result == model
+
+    @mark.asyncio
+    async def test_model_wait_for_timeout_validation(
+        self, model, mock_proximl
+    ):
+        with raises(SpecificationError) as exc_info:
+            await model.wait_for("ready", timeout=25 * 60 * 60)  # > 24 hours
+        assert "timeout" in str(exc_info.value.attribute).lower()
+        assert "less than" in str(exc_info.value.message).lower()
+
+    @mark.asyncio
+    async def test_model_connect_new_status_waits_for_downloading(
+        self, model, mock_proximl
+    ):
+        """Test that connect() waits for downloading status when status is 'new'."""
+        model._model["status"] = "new"
+        model._status = "new"
+        api_response_new = dict(
+            model_uuid="1",
+            name="first one",
+            status="new",
+        )
+        api_response_downloading = dict(
+            model_uuid="1",
+            name="first one",
+            status="downloading",
+            auth_token="token",
+            hostname="host",
+            source_uri="s3://bucket/path",
+        )
+        # wait_for calls refresh multiple times, then connect calls refresh again
+        mock_proximl._query = AsyncMock(
+            side_effect=[
+                api_response_new,  # wait_for refresh 1
+                api_response_downloading,  # wait_for refresh 2 (status matches, wait_for returns)
+                api_response_downloading,  # connect refresh
+            ]
+        )
+        with patch("proximl.models.upload", new_callable=AsyncMock) as mock_upload:
+            await model.connect()
+        # After refresh, status should be downloading
+        assert model.status == "downloading"
+        mock_upload.assert_called_once()
+
+    @mark.asyncio
+    async def test_model_connect_downloading_missing_properties(
+        self, model, mock_proximl
+    ):
+        """Test connect() raises error when downloading status missing properties."""
+        model._model["status"] = "downloading"
+        api_response = dict(
+            model_uuid="1",
+            name="first one",
+            status="downloading",
+            # Missing auth_token, hostname, or source_uri
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        with raises(SpecificationError) as exc_info:
+            await model.connect()
+        assert "missing required connection properties" in str(exc_info.value.message).lower()
+
+    @mark.asyncio
+    async def test_model_connect_exporting_missing_properties(
+        self, model, mock_proximl
+    ):
+        """Test connect() raises error when exporting status missing properties."""
+        model._model["status"] = "exporting"
+        api_response = dict(
+            model_uuid="1",
+            name="first one",
+            status="exporting",
+            # Missing auth_token, hostname, or output_uri
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        with raises(SpecificationError) as exc_info:
+            await model.connect()
+        assert "missing required connection properties" in str(exc_info.value.message).lower()
+
+    def test_model_billed_size_property(self, model, mock_proximl):
+        """Test billed_size property access."""
+        model._billed_size = 50000
+        assert model.billed_size == 50000
+
+    @mark.asyncio
     async def test_model_wait_for_model_failed(self, model, mock_proximl):
         api_response = dict(
             model_uuid="1",
@@ -426,7 +570,9 @@ class ModelTests:
         mock_proximl._query.assert_called()
 
     @mark.asyncio
-    async def test_model_wait_for_archived_succeeded(self, model, mock_proximl):
+    async def test_model_wait_for_archived_succeeded(
+        self, model, mock_proximl
+    ):
         mock_proximl._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Model Not Found"))
         )
@@ -434,7 +580,9 @@ class ModelTests:
         mock_proximl._query.assert_called()
 
     @mark.asyncio
-    async def test_model_wait_for_unexpected_api_error(self, model, mock_proximl):
+    async def test_model_wait_for_unexpected_api_error(
+        self, model, mock_proximl
+    ):
         mock_proximl._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Model Not Found"))
         )

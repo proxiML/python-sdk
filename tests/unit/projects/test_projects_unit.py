@@ -49,6 +49,22 @@ class ProjectsTests:
         mock_proximl._query.assert_called_once_with("/project/1234", "GET", dict())
 
     @mark.asyncio
+    async def test_get_current_project(self, projects, mock_proximl):
+        """Test get_current method (lines 20-23)."""
+        api_response = {
+            "id": "project-id-1",
+            "name": "current project",
+            "owner": True,
+        }
+        mock_proximl.project = "project-id-1"
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await projects.get_current(param1="value1")
+        mock_proximl._query.assert_called_once_with(
+            "/project/project-id-1", "GET", dict(param1="value1")
+        )
+        assert result.id == "project-id-1"
+
+    @mark.asyncio
     async def test_list_projects(
         self,
         projects,

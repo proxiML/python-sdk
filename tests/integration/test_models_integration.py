@@ -44,7 +44,11 @@ class GetModelTests:
 
     async def test_model_repr(self, model):
         string = repr(model)
-        regex = r"^Model\( proximl , \*\*{.*'model_uuid': '" + model.id + r"'.*}\)$"
+        regex = (
+            r"^Model\( proximl , \*\*{.*'model_uuid': '"
+            + model.id
+            + r"'.*}\)$"
+        )
         assert isinstance(string, str)
         assert re.match(regex, string)
 
@@ -68,6 +72,7 @@ async def test_model_wasabi(proximl, capsys):
 
 @mark.create
 @mark.asyncio
+@mark.local
 async def test_model_local(proximl, capsys):
     model = await proximl.models.create(
         name="CLI Automated Local",
@@ -77,7 +82,6 @@ async def test_model_local(proximl, capsys):
     attach_task = asyncio.create_task(model.attach())
     connect_task = asyncio.create_task(model.connect())
     await asyncio.gather(attach_task, connect_task)
-    await model.disconnect()
     await model.refresh()
     status = model.status
     size = model.size
@@ -88,5 +92,5 @@ async def test_model_local(proximl, capsys):
     sys.stdout.write(captured.out)
     sys.stderr.write(captured.err)
     assert "Starting data upload from local" in captured.out
-    assert "official/LICENSE  11456 bytes" in captured.out
+    assert "official/LICENSE" in captured.out
     assert "Upload complete" in captured.out

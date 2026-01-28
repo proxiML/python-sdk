@@ -1,6 +1,6 @@
 import re
 from unittest.mock import AsyncMock
-from pytest import mark, fixture
+from pytest import mark, fixture, raises
 
 import proximl.gpu_types as specimen
 
@@ -38,6 +38,16 @@ class GpuTypesTests:
         mock_proximl._query.assert_called_once_with(
             f"/project/proj-id-1/gputypes", "GET"
         )
+
+    @mark.asyncio
+    async def test_list_gpu_types_no_project(self, mock_proximl):
+        """Test list raises error when no active project (line 11)."""
+        from proximl.exceptions import ProxiMLException
+        gpu_types = specimen.GpuTypes(mock_proximl)
+        mock_proximl.project = None
+        with raises(ProxiMLException) as exc_info:
+            await gpu_types.list()
+        assert "Active project not configured" in str(exc_info.value.message)
 
     @mark.asyncio
     async def test_project_refresh_gpu_types(self, gpu_types, mock_proximl):

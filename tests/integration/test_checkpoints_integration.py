@@ -23,6 +23,7 @@ class GetCheckpointTests:
         checkpoint = await checkpoint.wait_for("archived", 60)
 
     async def test_get_checkpoints(self, proximl, checkpoint):
+        _ = checkpoint
         checkpoints = await proximl.checkpoints.list()
         assert len(checkpoints) > 0
 
@@ -55,7 +56,7 @@ class GetCheckpointTests:
 
 @mark.create
 @mark.asyncio
-async def test_checkpoint_wasabi(proximl, capsys):
+async def test_checkpoint_wasabi(proximl):
     checkpoint = await proximl.checkpoints.create(
         name="CLI Automated Wasabi",
         source_type="wasabi",
@@ -72,6 +73,7 @@ async def test_checkpoint_wasabi(proximl, capsys):
 
 @mark.create
 @mark.asyncio
+@mark.local
 async def test_checkpoint_local(proximl, capsys):
     checkpoint = await proximl.checkpoints.create(
         name="CLI Automated Local",
@@ -81,7 +83,6 @@ async def test_checkpoint_local(proximl, capsys):
     attach_task = asyncio.create_task(checkpoint.attach())
     connect_task = asyncio.create_task(checkpoint.connect())
     await asyncio.gather(attach_task, connect_task)
-    await checkpoint.disconnect()
     await checkpoint.refresh()
     status = checkpoint.status
     size = checkpoint.size
@@ -92,5 +93,5 @@ async def test_checkpoint_local(proximl, capsys):
     sys.stdout.write(captured.out)
     sys.stderr.write(captured.err)
     assert "Starting data upload from local" in captured.out
-    assert "official/LICENSE  11456 bytes" in captured.out
+    assert "official/LICENSE" in captured.out
     assert "Upload complete" in captured.out

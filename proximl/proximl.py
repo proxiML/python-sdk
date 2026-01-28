@@ -7,7 +7,7 @@ import traceback
 import random
 from importlib.metadata import version
 
-from proximl.auth import Auth
+from proximl.utils.auth import Auth
 from proximl.datasets import Datasets
 from proximl.models import Models
 from proximl.checkpoints import Checkpoints
@@ -16,7 +16,6 @@ from proximl.jobs import Jobs
 from proximl.gpu_types import GpuTypes
 from proximl.environments import Environments
 from proximl.exceptions import ApiError, ProxiMLException
-from proximl.connections import Connections
 from proximl.projects import Projects
 from proximl.cloudbender import Cloudbender
 
@@ -34,13 +33,17 @@ class ProxiML(object):
             os.environ.get("PROXIML_CONFIG_DIR") or "~/.proximl"
         )
         try:
-            with open(f"{CONFIG_DIR}/environment.json", "r") as file:
+            with open(
+                f"{CONFIG_DIR}/environment.json", "r", encoding="utf-8"
+            ) as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
         except OSError:
             env = dict()
         try:
-            with open(f"{CONFIG_DIR}/config.json", "r") as file:
+            with open(
+                f"{CONFIG_DIR}/config.json", "r", encoding="utf-8"
+            ) as file:
                 config_str = file.read().replace("\n", "")
             config = json.loads(config_str)
         except OSError:
@@ -72,7 +75,6 @@ class ProxiML(object):
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
         self.environments = Environments(self)
-        self.connections = Connections(self)
         self.projects = Projects(self)
         self.cloudbender = Cloudbender(self)
         self.api_url = (
@@ -92,7 +94,16 @@ class ProxiML(object):
     def project(self) -> str:
         return self.active_project
 
-    async def _query(self, path, method, params=None, data=None, headers=None,max_retries=3, backoff_factor=0.5):
+    async def _query(
+        self,
+        path,
+        method,
+        params=None,
+        data=None,
+        headers=None,
+        max_retries=3,
+        backoff_factor=0.5,
+    ):
         try:
             tokens = self.auth.get_tokens()
         except ProxiMLException as e:
@@ -120,7 +131,9 @@ class ProxiML(object):
         )
         if params:
             if not isinstance(params, dict):
-                raise ProxiMLException("Query parameters must be a valid dictionary")
+                raise ProxiMLException(
+                    "Query parameters must be a valid dictionary"
+                )
             params = {
                 k: (str(v).lower() if isinstance(v, bool) else v)
                 for k, v in params.items()
@@ -154,27 +167,44 @@ class ProxiML(object):
                         params=params,
                     ) as resp:
                         if (resp.status // 100) in [4, 5]:
-                            if resp.status == 502 and attempt < max_retries - 1:
-                                wait_time = (2 ** attempt) * backoff_factor * (random.random() + 0.5)
+                            if (
+                                resp.status == 502
+                                and attempt < max_retries - 1
+                            ):
+                                wait_time = (
+                                    (2**attempt)
+                                    * backoff_factor
+                                    * (random.random() + 0.5)
+                                )
                                 await asyncio.sleep(wait_time)
                                 continue
                             else:
                                 what = await resp.read()
-                                content_type = resp.headers.get("content-type", "")
+                                content_type = resp.headers.get(
+                                    "content-type", ""
+                                )
                                 resp.close()
                                 if content_type == "application/json":
-                                    raise ApiError(resp.status, json.loads(what.decode("utf8")))
+                                    raise ApiError(
+                                        resp.status,
+                                        json.loads(what.decode("utf8")),
+                                    )
                                 else:
-                                    raise ApiError(resp.status, {"message": what.decode("utf8")})
+                                    raise ApiError(
+                                        resp.status,
+                                        {"message": what.decode("utf8")},
+                                    )
                         results = await resp.json()
                         return results
             except aiohttp.ClientResponseError as e:
                 if e.status == 502 and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * backoff_factor * (random.random() + 0.5)
+                    wait_time = (
+                        (2**attempt) * backoff_factor * (random.random() + 0.5)
+                    )
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    raise  ApiError(e.status, f"Error {e.message}")
+                    raise ApiError(e.status, f"Error {e.message}")
 
         raise ProxiMLException("Unexpected API failure")
 
@@ -286,11 +316,15 @@ class ProxiML(object):
                     logging.debug(f"Websocket Disconnected.  Done? {done}")
                 except Exception as e:
                     connection_tries += 1
-                    logging.debug(f"Connection error: {traceback.format_exc()}")
+                    logging.debug(
+                        f"Connection error: {traceback.format_exc()}"
+                    )
                     if connection_tries == 5:
                         raise ApiError(
                             500,
-                            {"message": f"Connection error: {traceback.format_exc()}"},
+                            {
+                                "message": f"Connection error: {traceback.format_exc()}"
+                            },
                         )
 
     def set_active_project(self, project_uuid):

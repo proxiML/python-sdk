@@ -10,7 +10,7 @@ from .exceptions import (
     SpecificationError,
     ProxiMLException,
 )
-from .connections import Connection
+from proximl.utils.transfer import upload, download
 
 
 class Checkpoints(object):
@@ -23,7 +23,9 @@ class Checkpoints(object):
 
     async def list(self, **kwargs):
         resp = await self.proximl._query(f"/checkpoint", "GET", kwargs)
-        checkpoints = [Checkpoint(self.proximl, **checkpoint) for checkpoint in resp]
+        checkpoints = [
+            Checkpoint(self.proximl, **checkpoint) for checkpoint in resp
+        ]
         return checkpoints
 
     async def list_public(self, **kwargs):
@@ -68,13 +70,17 @@ class Checkpoint:
     def __init__(self, proximl, **kwargs):
         self.proximl = proximl
         self._checkpoint = kwargs
-        self._id = self._checkpoint.get("id", self._checkpoint.get("checkpoint_uuid"))
+        self._id = self._checkpoint.get(
+            "id", self._checkpoint.get("checkpoint_uuid")
+        )
         self._status = self._checkpoint.get("status")
         self._name = self._checkpoint.get("name")
-        self._size = self._checkpoint.get("size") or self._checkpoint.get("used_size")
-        self._billed_size = self._checkpoint.get("billed_size") or self._checkpoint.get(
-            "size"
+        self._size = self._checkpoint.get("size") or self._checkpoint.get(
+            "used_size"
         )
+        self._billed_size = self._checkpoint.get(
+            "billed_size"
+        ) or self._checkpoint.get("size")
         self._project_uuid = self._checkpoint.get("project_uuid")
 
     @property
@@ -122,56 +128,45 @@ class Checkpoint:
         )
         return resp
 
-    async def get_connection_utility_url(self):
-        resp = await self.proximl._query(
-            f"/checkpoint/{self._id}/download",
-            "GET",
-            dict(project_uuid=self._project_uuid),
-        )
-        return resp
-
-    def get_connection_details(self):
-        if self._checkpoint.get("vpn"):
-            details = dict(
-                entity_type="checkpoint",
-                project_uuid=self._checkpoint.get("project_uuid"),
-                cidr=self._checkpoint.get("vpn").get("cidr"),
-                ssh_port=self._checkpoint.get("vpn").get("client").get("ssh_port"),
-                input_path=(
-                    self._checkpoint.get("source_uri")
-                    if self.status in ["new", "downloading"]
-                    else None
-                ),
-                output_path=(
-                    self._checkpoint.get("output_uri")
-                    if self.status == "exporting"
-                    else None
-                ),
-            )
-        else:
-            details = dict()
-        return details
-
     async def connect(self):
-        if self.status in ["ready", "failed"]:
-            raise SpecificationError(
-                "status",
-                f"You can only connect to downloading or exporting checkpoints.",
-            )
-        if self.status == "new":
-            await self.wait_for("downloading")
-        connection = Connection(
-            self.proximl, entity_type="checkpoint", id=self.id, entity=self
-        )
-        await connection.start()
-        return connection.status
+        if self.status not in ["downloading", "exporting"]:
+            if self.status == "new":
+                await self.wait_for("downloading")
+            else:
+                raise SpecificationError(
+                    "status",
+                    f"You can only connect to downloading or exporting checkpoints.",
+                )
 
-    async def disconnect(self):
-        connection = Connection(
-            self.proximl, entity_type="checkpoint", id=self.id, entity=self
-        )
-        await connection.stop()
-        return connection.status
+        # Refresh to get latest entity data
+        await self.refresh()
+
+        if self.status == "downloading":
+            # Upload task - get auth_token, hostname, and source_uri from checkpoint
+            auth_token = self._checkpoint.get("auth_token")
+            hostname = self._checkpoint.get("hostname")
+            source_uri = self._checkpoint.get("source_uri")
+
+            if not auth_token or not hostname or not source_uri:
+                raise SpecificationError(
+                    "status",
+                    f"Checkpoint in downloading status missing required connection properties (auth_token, hostname, source_uri).",
+                )
+
+            await upload(hostname, auth_token, source_uri)
+        elif self.status == "exporting":
+            # Download task - get auth_token, hostname, and output_uri from checkpoint
+            auth_token = self._checkpoint.get("auth_token")
+            hostname = self._checkpoint.get("hostname")
+            output_uri = self._checkpoint.get("output_uri")
+
+            if not auth_token or not hostname or not output_uri:
+                raise SpecificationError(
+                    "status",
+                    f"Checkpoint in exporting status missing required connection properties (auth_token, hostname, output_uri).",
+                )
+
+            await download(hostname, auth_token, output_uri)
 
     async def remove(self, force=False):
         await self.proximl._query(
@@ -210,7 +205,9 @@ class Checkpoint:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                    timestamp = datetime.fromtimestamp(
+                        int(data.get("time")) / 1000
+                    )
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
@@ -239,7 +236,7 @@ class Checkpoint:
     async def wait_for(self, status, timeout=300):
         if self.status == status:
             return
-        valid_statuses = ["downloading", "ready", "archived"]
+        valid_statuses = ["downloading", "ready", "exporting", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",
@@ -254,7 +251,9 @@ class Checkpoint:
             )
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
+        POLL_INTERVAL = max(
+            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
+        )
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:

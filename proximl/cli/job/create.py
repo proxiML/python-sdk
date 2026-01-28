@@ -275,7 +275,9 @@ def notebook(
         options["environment"]["type"] = environment
 
     try:
-        envs = [{"key": e.split("=")[0], "value": e.split("=")[1]} for e in env]
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
         options["environment"]["env"] = envs
     except IndexError:
         raise click.UsageError(
@@ -289,21 +291,25 @@ def notebook(
         if pip_packages:
             options["environment"]["packages"]["pip"] = pip_packages.split(",")
         if conda_packages:
-            options["environment"]["packages"]["conda"] = conda_packages.split(",")
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if data_dir:
         click.echo("Creating Dataset..", file=config.stdout)
         new_dataset = config.proximl.run(
-            config.proximl.client.datasets.create(f"Job - {name}", "local", data_dir)
+            config.proximl.client.datasets.create(
+                f"Job - {name}", "local", data_dir
+            )
         )
         if attach:
             config.proximl.run(new_dataset.attach(), new_dataset.connect())
-            config.proximl.run(new_dataset.disconnect())
         else:
             config.proximl.run(new_dataset.connect())
             config.proximl.run(new_dataset.wait_for("ready"))
-            config.proximl.run(new_dataset.disconnect())
-        options["data"]["datasets"].append(dict(id=new_dataset.id, type="existing"))
+        options["data"]["datasets"].append(
+            dict(id=new_dataset.id, type="existing")
+        )
 
     if git_uri:
         options["model"]["source_type"] = "git"
@@ -331,13 +337,11 @@ def notebook(
         if attach or connect:
             click.echo("Waiting for job to start...", file=config.stdout)
             config.proximl.run(job.connect(), job.attach())
-            config.proximl.run(job.disconnect())
             click.echo("Launching...", file=config.stdout)
             browse(job.notebook_url)
         else:
             config.proximl.run(job.connect())
             config.proximl.run(job.wait_for("running"))
-            config.proximl.run(job.disconnect())
     elif attach or connect:
         click.echo("Waiting for job to start...", file=config.stdout)
         config.proximl.run(job.wait_for("running", timeout))
@@ -626,15 +630,21 @@ def training(
     if output_type:
         options["data"]["output_type"] = output_type
         options["data"]["output_uri"] = output_uri
-        options["data"]["output_options"] = dict(archive=archive, save_model=save_model)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     if output_dir:
         options["data"]["output_type"] = "local"
         options["data"]["output_uri"] = output_dir
-        options["data"]["output_options"] = dict(archive=archive, save_model=save_model)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     try:
-        envs = [{"key": e.split("=")[0], "value": e.split("=")[1]} for e in env]
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
         options["environment"]["env"] = envs
     except IndexError:
         raise click.UsageError(
@@ -648,21 +658,25 @@ def training(
         if pip_packages:
             options["environment"]["packages"]["pip"] = pip_packages.split(",")
         if conda_packages:
-            options["environment"]["packages"]["conda"] = conda_packages.split(",")
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if data_dir:
         click.echo("Creating Dataset..", file=config.stdout)
         new_dataset = config.proximl.run(
-            config.proximl.client.datasets.create(f"Job - {name}", "local", data_dir)
+            config.proximl.client.datasets.create(
+                f"Job - {name}", "local", data_dir
+            )
         )
         if attach:
             config.proximl.run(new_dataset.attach(), new_dataset.connect())
-            config.proximl.run(new_dataset.disconnect())
         else:
             config.proximl.run(new_dataset.connect())
             config.proximl.run(new_dataset.wait_for("ready"))
-            config.proximl.run(new_dataset.disconnect())
-        options["data"]["datasets"].append(dict(id=new_dataset.id, type="existing"))
+        options["data"]["datasets"].append(
+            dict(id=new_dataset.id, type="existing")
+        )
 
     if git_uri:
         options["model"]["source_type"] = "git"
@@ -979,15 +993,21 @@ def inference(
     if output_type:
         options["data"]["output_type"] = output_type
         options["data"]["output_uri"] = output_uri
-        options["data"]["output_options"] = dict(archive=archive, save_model=save_model)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     if output_dir:
         options["data"]["output_type"] = "local"
         options["data"]["output_uri"] = output_dir
-        options["data"]["output_options"] = dict(archive=archive, save_model=save_model)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     try:
-        envs = [{"key": e.split("=")[0], "value": e.split("=")[1]} for e in env]
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
         options["environment"]["env"] = envs
     except IndexError:
         raise click.UsageError(
@@ -1001,7 +1021,9 @@ def inference(
         if pip_packages:
             options["environment"]["packages"]["pip"] = pip_packages.split(",")
         if conda_packages:
-            options["environment"]["packages"]["conda"] = conda_packages.split(",")
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if git_uri:
         options["model"]["source_type"] = "git"
@@ -1301,7 +1323,9 @@ def endpoint(
         options["environment"]["type"] = environment
 
     try:
-        envs = [{"key": e.split("=")[0], "value": e.split("=")[1]} for e in env]
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
         options["environment"]["env"] = envs
     except IndexError:
         raise click.UsageError(
@@ -1315,7 +1339,9 @@ def endpoint(
         if pip_packages:
             options["environment"]["packages"]["pip"] = pip_packages.split(",")
         if conda_packages:
-            options["environment"]["packages"]["conda"] = conda_packages.split(",")
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if git_uri:
         options["model"]["source_type"] = "git"
@@ -1349,7 +1375,6 @@ def endpoint(
             config.proximl.run(job.connect())
         click.echo("Waiting for job to start...", file=config.stdout)
         config.proximl.run(job.wait_for("running", timeout))
-        config.proximl.run(job.disconnect())
         config.proximl.run(job.refresh())
         click.echo(f"Endpoint is running at:  {job.url}", file=config.stdout)
     else:
@@ -1357,4 +1382,6 @@ def endpoint(
             click.echo("Waiting for job to start...", file=config.stdout)
             config.proximl.run(job.wait_for("running", timeout))
             config.proximl.run(job.refresh())
-            click.echo(f"Endpoint is running at:  {job.url}", file=config.stdout)
+            click.echo(
+                f"Endpoint is running at:  {job.url}", file=config.stdout
+            )

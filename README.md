@@ -169,7 +169,7 @@ To list all datasets:
 proximl dataset list
 ```
 
-To connect to a job that requires the [connection capability](https://docs.proximl.ai/reference/connection-capability):
+To connect to a job that uses the "local" file transfer method:
 
 ```
 proximl job connect <job ID or name>

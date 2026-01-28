@@ -4,7 +4,7 @@ from pytest import fixture, mark
 from unittest.mock import Mock, AsyncMock, patch, create_autospec
 
 from proximl.proximl import ProxiML
-from proximl.auth import Auth
+from proximl.utils.auth import Auth
 from proximl.datasets import Dataset, Datasets
 from proximl.checkpoints import Checkpoint, Checkpoints
 from proximl.volumes import Volume, Volumes
@@ -12,14 +12,16 @@ from proximl.models import Model, Models
 from proximl.gpu_types import GpuType, GpuTypes
 from proximl.environments import Environment, Environments
 from proximl.jobs import Job, Jobs
-from proximl.connections import Connections
 from proximl.projects import (
     Projects,
     Project,
 )
 from proximl.projects.datastores import ProjectDatastores, ProjectDatastore
 from proximl.projects.services import ProjectServices, ProjectService
-from proximl.projects.data_connectors import ProjectDataConnectors, ProjectDataConnector
+from proximl.projects.data_connectors import (
+    ProjectDataConnectors,
+    ProjectDataConnector,
+)
 from proximl.projects.credentials import ProjectCredentials, ProjectCredential
 from proximl.projects.secrets import ProjectSecrets, ProjectSecret
 
@@ -1130,12 +1132,13 @@ def mock_proximl(
     proximl.gpu_types = create_autospec(GpuTypes)
     proximl.environments = create_autospec(Environments)
     proximl.jobs = create_autospec(Jobs)
-    proximl.connections = create_autospec(Connections)
     proximl.projects = create_autospec(Projects)
     proximl.datasets.list = AsyncMock(return_value=mock_my_datasets)
     proximl.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     proximl.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
-    proximl.checkpoints.list_public = AsyncMock(return_value=mock_public_checkpoints)
+    proximl.checkpoints.list_public = AsyncMock(
+        return_value=mock_public_checkpoints
+    )
     proximl.models.list = AsyncMock(return_value=mock_models)
     proximl.volumes.list = AsyncMock(return_value=mock_my_volumes)
     proximl.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
@@ -1143,17 +1146,25 @@ def mock_proximl(
     proximl.jobs.list = AsyncMock(return_value=mock_jobs)
     proximl.projects.list = AsyncMock(return_value=mock_projects)
     proximl.projects.datastores = create_autospec(ProjectDatastores)
-    proximl.projects.datastores.list = AsyncMock(return_value=mock_project_datastores)
+    proximl.projects.datastores.list = AsyncMock(
+        return_value=mock_project_datastores
+    )
     proximl.projects.services = create_autospec(ProjectServices)
-    proximl.projects.services.list = AsyncMock(return_value=mock_project_services)
+    proximl.projects.services.list = AsyncMock(
+        return_value=mock_project_services
+    )
     proximl.projects.data_connectors = create_autospec(ProjectDataConnectors)
     proximl.projects.data_connectors.list = AsyncMock(
         return_value=mock_project_data_connectors
     )
     proximl.projects.credentials = create_autospec(ProjectCredentials)
-    proximl.projects.credentials.list = AsyncMock(return_value=mock_project_credentials)
+    proximl.projects.credentials.list = AsyncMock(
+        return_value=mock_project_credentials
+    )
     proximl.projects.secrets = create_autospec(ProjectSecrets)
-    proximl.projects.secrets.list = AsyncMock(return_value=mock_project_secrets)
+    proximl.projects.secrets.list = AsyncMock(
+        return_value=mock_project_secrets
+    )
 
     proximl.cloudbender = create_autospec(Cloudbender)
 
@@ -1166,7 +1177,9 @@ def mock_proximl(
     proximl.cloudbender.devices = create_autospec(Devices)
     proximl.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     proximl.cloudbender.datastores = create_autospec(Datastores)
-    proximl.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
+    proximl.cloudbender.datastores.list = AsyncMock(
+        return_value=mock_datastores
+    )
     proximl.cloudbender.services = create_autospec(Services)
     proximl.cloudbender.services.list = AsyncMock(return_value=mock_services)
     proximl.cloudbender.data_connectors = create_autospec(DataConnectors)

@@ -36,15 +36,7 @@ def attach(config, model):
     if None is found:
         raise click.UsageError("Cannot find specified model.")
 
-    try:
-        config.proximl.run(found.attach())
-        return config.proximl.run(found.disconnect())
-    except:
-        try:
-            config.proximl.run(found.disconnect())
-        except:
-            pass
-        raise
+    config.proximl.run(found.attach())
 
 
 @model.command()
@@ -69,18 +61,10 @@ def connect(config, model, attach):
     if None is found:
         raise click.UsageError("Cannot find specified model.")
 
-    try:
-        if attach:
-            config.proximl.run(found.connect(), found.attach())
-            return config.proximl.run(found.disconnect())
-        else:
-            return config.proximl.run(found.connect())
-    except:
-        try:
-            config.proximl.run(found.disconnect())
-        except:
-            pass
-        raise
+    if attach:
+        config.proximl.run(found.connect(), found.attach())
+    else:
+        config.proximl.run(found.connect())
 
 
 @model.command()
@@ -125,41 +109,15 @@ def create(config, attach, connect, source, name, path):
             )
         )
 
-        try:
-            if connect and attach:
-                config.proximl.run(model.attach(), model.connect())
-                return config.proximl.run(model.disconnect())
-            elif connect:
-                return config.proximl.run(model.connect())
-            else:
-                raise click.UsageError(
-                    "Abort!\n"
-                    "No logs to show for local sourced model without connect."
-                )
-        except:
-            try:
-                config.proximl.run(model.disconnect())
-            except:
-                pass
-            raise
-
-
-@model.command()
-@click.argument("model", type=click.STRING)
-@pass_config
-def disconnect(config, model):
-    """
-    Disconnect and clean-up model upload.
-
-    MODEL may be specified by name or ID, but ID is preferred.
-    """
-    models = config.proximl.run(config.proximl.client.models.list())
-
-    found = search_by_id_name(model, models)
-    if None is found:
-        raise click.UsageError("Cannot find specified model.")
-
-    return config.proximl.run(found.disconnect())
+        if connect and attach:
+            config.proximl.run(model.attach(), model.connect())
+        elif connect:
+            config.proximl.run(model.connect())
+        else:
+            raise click.UsageError(
+                "Abort!\n"
+                "No logs to show for local sourced model without connect."
+            )
 
 
 @model.command()

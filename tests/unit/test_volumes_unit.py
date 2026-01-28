@@ -47,7 +47,9 @@ class VolumesTests:
         api_response = dict()
         mock_proximl._query = AsyncMock(return_value=api_response)
         await volumes.get("1234")
-        mock_proximl._query.assert_called_once_with("/volume/1234", "GET", dict())
+        mock_proximl._query.assert_called_once_with(
+            "/volume/1234", "GET", dict()
+        )
 
     @mark.asyncio
     async def test_list_volumes(
@@ -137,9 +139,7 @@ class VolumeTests:
 
     @mark.asyncio
     async def test_volume_get_log_url(self, volume, mock_proximl):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
-        )
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
         mock_proximl._query = AsyncMock(return_value=api_response)
         response = await volume.get_log_url()
         mock_proximl._query.assert_called_once_with(
@@ -164,79 +164,73 @@ class VolumeTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_volume_get_connection_utility_url(self, volume, mock_proximl):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
-        )
-        mock_proximl._query = AsyncMock(return_value=api_response)
-        response = await volume.get_connection_utility_url()
-        mock_proximl._query.assert_called_once_with(
-            "/volume/1/download", "GET", dict(project_uuid="proj-id-1")
-        )
-        assert response == api_response
-
-    def test_volume_get_connection_details_no_vpn(self, volume):
-        details = volume.get_connection_details()
-        expected_details = dict()
-        assert details == expected_details
-
-    def test_volume_get_connection_details_local_data(self, mock_proximl):
+    async def test_volume_connect_downloading_status(self, mock_proximl):
         volume = specimen.Volume(
             mock_proximl,
             id="1",
-            project_uuid="a",
-            name="first one",
-            status="new",
-            capacity="10G",
-            createdAt="2020-12-31T23:59:59.000Z",
-            source_type="local",
-            source_uri="~/tensorflow-example",
-            vpn={
-                "status": "new",
-                "cidr": "10.106.171.0/24",
-                "client": {
-                    "port": "36017",
-                    "id": "cus-id-1",
-                    "address": "10.106.171.253",
-                    "ssh_port": 46600,
-                },
-                "net_prefix_type_id": 1,
-            },
+            project_uuid="proj-id-1",
+            name="test volume",
+            status="downloading",
+            auth_token="test-token",
+            hostname="example.com",
+            source_uri="/path/to/source",
         )
-        details = volume.get_connection_details()
-        expected_details = dict(
-            project_uuid="a",
-            entity_type="volume",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            input_path="~/tensorflow-example",
-            output_path=None,
-        )
-        assert details == expected_details
+
+        with patch(
+            "proximl.volumes.Volume.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "proximl.volumes.upload", new_callable=AsyncMock
+            ) as mock_upload:
+                await volume.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with(
+                    "example.com", "test-token", "/path/to/source"
+                )
 
     @mark.asyncio
-    async def test_volume_connect(self, volume, mock_proximl):
+    async def test_volume_connect_exporting_status(
+        self, mock_proximl, tmp_path
+    ):
+        output_dir = str(tmp_path / "output")
+        volume = specimen.Volume(
+            mock_proximl,
+            id="1",
+            project_uuid="proj-id-1",
+            name="test volume",
+            status="exporting",
+            auth_token="test-token",
+            hostname="example.com",
+            output_uri=output_dir,
+        )
+
         with patch(
-            "proximl.volumes.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "connected"
-            resp = await volume.connect()
-            connection.start.assert_called_once()
-            assert resp == "connected"
+            "proximl.volumes.Volume.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "proximl.volumes.download", new_callable=AsyncMock
+            ) as mock_download:
+                await volume.connect()
+                mock_refresh.assert_called_once()
+                mock_download.assert_called_once_with(
+                    "example.com", "test-token", output_dir
+                )
 
     @mark.asyncio
-    async def test_volume_disconnect(self, volume, mock_proximl):
-        with patch(
-            "proximl.volumes.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "removed"
-            resp = await volume.disconnect()
-            connection.stop.assert_called_once()
-            assert resp == "removed"
+    async def test_volume_connect_invalid_status(self, mock_proximl):
+        volume = specimen.Volume(
+            mock_proximl,
+            id="1",
+            project_uuid="proj-id-1",
+            name="test volume",
+            status="ready",
+        )
+
+        with raises(
+            SpecificationError,
+            match="You can only connect to downloading or exporting volumes",
+        ):
+            await volume.connect()
 
     @mark.asyncio
     async def test_volume_remove(self, volume, mock_proximl):
@@ -375,7 +369,9 @@ class VolumeTests:
         mock_proximl._query.assert_not_called()
 
     @mark.asyncio
-    async def test_volume_wait_for_incorrect_status(self, volume, mock_proximl):
+    async def test_volume_wait_for_incorrect_status(
+        self, volume, mock_proximl
+    ):
         api_response = None
         mock_proximl._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError):
@@ -433,7 +429,9 @@ class VolumeTests:
         mock_proximl._query.assert_called()
 
     @mark.asyncio
-    async def test_volume_wait_for_archived_succeeded(self, volume, mock_proximl):
+    async def test_volume_wait_for_archived_succeeded(
+        self, volume, mock_proximl
+    ):
         mock_proximl._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Volume Not Found"))
         )
@@ -441,10 +439,153 @@ class VolumeTests:
         mock_proximl._query.assert_called()
 
     @mark.asyncio
-    async def test_volume_wait_for_unexpected_api_error(self, volume, mock_proximl):
+    async def test_volume_wait_for_unexpected_api_error(
+        self, volume, mock_proximl
+    ):
         mock_proximl._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Volume Not Found"))
         )
         with raises(ApiError):
             await volume.wait_for("ready")
         mock_proximl._query.assert_called()
+
+    @mark.asyncio
+    async def test_volume_rename(self, volume, mock_proximl):
+        api_response = dict(
+            id="1",
+            name="renamed volume",
+            project_uuid="proj-id-1",
+            status="ready",
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await volume.rename("renamed volume")
+        mock_proximl._query.assert_called_once_with(
+            "/volume/1",
+            "PATCH",
+            dict(project_uuid="proj-id-1"),
+            dict(name="renamed volume"),
+        )
+        assert result == volume
+        assert volume.name == "renamed volume"
+
+    @mark.asyncio
+    async def test_volume_export(self, volume, mock_proximl):
+        api_response = dict(
+            id="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await volume.export("aws", "s3://bucket/path", dict(key="value"))
+        mock_proximl._query.assert_called_once_with(
+            "/volume/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(key="value"),
+            ),
+        )
+        assert result == volume
+        assert volume.status == "exporting"
+
+    @mark.asyncio
+    async def test_volume_export_default_options(self, volume, mock_proximl):
+        api_response = dict(
+            id="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        result = await volume.export("aws", "s3://bucket/path")
+        mock_proximl._query.assert_called_once_with(
+            "/volume/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(),
+            ),
+        )
+        assert result == volume
+
+    @mark.asyncio
+    async def test_volume_wait_for_timeout_validation(
+        self, volume, mock_proximl
+    ):
+        with raises(SpecificationError) as exc_info:
+            await volume.wait_for("ready", timeout=25 * 60 * 60)  # > 24 hours
+        assert "timeout" in str(exc_info.value.attribute).lower()
+        assert "less than" in str(exc_info.value.message).lower()
+
+    @mark.asyncio
+    async def test_volume_connect_new_status_waits_for_downloading(
+        self, volume, mock_proximl
+    ):
+        """Test that connect() waits for downloading status when status is 'new'."""
+        volume._volume["status"] = "new"
+        volume._status = "new"
+        api_response_new = dict(
+            id="1",
+            name="first one",
+            status="new",
+        )
+        api_response_downloading = dict(
+            id="1",
+            name="first one",
+            status="downloading",
+            auth_token="token",
+            hostname="host",
+            source_uri="s3://bucket/path",
+        )
+        # wait_for calls refresh multiple times, then connect calls refresh again
+        mock_proximl._query = AsyncMock(
+            side_effect=[
+                api_response_new,  # wait_for refresh 1
+                api_response_downloading,  # wait_for refresh 2 (status matches, wait_for returns)
+                api_response_downloading,  # connect refresh
+            ]
+        )
+        with patch("proximl.volumes.upload", new_callable=AsyncMock) as mock_upload:
+            await volume.connect()
+        # After refresh, status should be downloading
+        assert volume.status == "downloading"
+        mock_upload.assert_called_once()
+
+    @mark.asyncio
+    async def test_volume_connect_downloading_missing_properties(
+        self, volume, mock_proximl
+    ):
+        """Test connect() raises error when downloading status missing properties."""
+        volume._volume["status"] = "downloading"
+        api_response = dict(
+            id="1",
+            name="first one",
+            status="downloading",
+            # Missing auth_token, hostname, or source_uri
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        with raises(SpecificationError) as exc_info:
+            await volume.connect()
+        assert "missing required connection properties" in str(exc_info.value.message).lower()
+
+    @mark.asyncio
+    async def test_volume_connect_exporting_missing_properties(
+        self, volume, mock_proximl
+    ):
+        """Test connect() raises error when exporting status missing properties."""
+        volume._volume["status"] = "exporting"
+        api_response = dict(
+            id="1",
+            name="first one",
+            status="exporting",
+            # Missing auth_token, hostname, or output_uri
+        )
+        mock_proximl._query = AsyncMock(return_value=api_response)
+        with raises(SpecificationError) as exc_info:
+            await volume.connect()
+        assert "missing required connection properties" in str(exc_info.value.message).lower()

@@ -35,15 +35,7 @@ def attach(config, volume):
     if None is found:
         raise click.UsageError("Cannot find specified volume.")
 
-    try:
-        config.proximl.run(found.attach())
-        return config.proximl.run(found.disconnect())
-    except:
-        try:
-            config.proximl.run(found.disconnect())
-        except:
-            pass
-        raise
+    config.proximl.run(found.attach())
 
 
 @volume.command()
@@ -67,18 +59,10 @@ def connect(config, volume, attach):
     if None is found:
         raise click.UsageError("Cannot find specified volume.")
 
-    try:
-        if attach:
-            config.proximl.run(found.connect(), found.attach())
-            return config.proximl.run(found.disconnect())
-        else:
-            return config.proximl.run(found.connect())
-    except:
-        try:
-            config.proximl.run(found.disconnect())
-        except:
-            pass
-        raise
+    if attach:
+        config.proximl.run(found.connect(), found.attach())
+    else:
+        config.proximl.run(found.connect())
 
 
 @volume.command()
@@ -120,45 +104,22 @@ def create(config, attach, connect, source, name, capacity, path):
     if source == "local":
         volume = config.proximl.run(
             config.proximl.client.volumes.create(
-                name=name, source_type="local", source_uri=path, capacity=capacity
+                name=name,
+                source_type="local",
+                source_uri=path,
+                capacity=capacity,
             )
         )
 
-        try:
-            if connect and attach:
-                config.proximl.run(volume.attach(), volume.connect())
-                return config.proximl.run(volume.disconnect())
-            elif connect:
-                return config.proximl.run(volume.connect())
-            else:
-                raise click.UsageError(
-                    "Abort!\n"
-                    "No logs to show for local sourced volume without connect."
-                )
-        except:
-            try:
-                config.proximl.run(volume.disconnect())
-            except:
-                pass
-            raise
-
-
-@volume.command()
-@click.argument("volume", type=click.STRING)
-@pass_config
-def disconnect(config, volume):
-    """
-    Disconnect and clean-up volume upload.
-
-    VOLUME may be specified by name or ID, but ID is preferred.
-    """
-    volumes = config.proximl.run(config.proximl.client.volumes.list())
-
-    found = search_by_id_name(volume, volumes)
-    if None is found:
-        raise click.UsageError("Cannot find specified volume.")
-
-    return config.proximl.run(found.disconnect())
+        if connect and attach:
+            config.proximl.run(volume.attach(), volume.connect())
+        elif connect:
+            config.proximl.run(volume.connect())
+        else:
+            raise click.UsageError(
+                "Abort!\n"
+                "No logs to show for local sourced volume without connect."
+            )
 
 
 @volume.command()
